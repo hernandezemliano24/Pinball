@@ -129,3 +129,13 @@ sudo cat /var/log/pinball-deploy.log
 - Removed pink triangle slingshots completely.
 - Increased the gap between the flippers.
 - Simplified lower geometry to avoid all trap pockets.
+
+## Version 6 definitive shooter fix
+
+- Exactly one shooter tunnel remains.
+- A top sensor/kicker guarantees the ball enters the playfield at x=690.
+- All dark-blue rails were removed from the shooter mouth.
+- Pink triangle slingshots remain completely removed.
+- Right-side obstacles were moved away from the entrance.
+- Flippers are shorter and farther apart for a larger center drain.
+- Lower guides are continuous and contain no closed trap pockets.

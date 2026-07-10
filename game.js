@@ -85,8 +85,8 @@ const rollovers = [
 const targets = [
   {x:116,y:500,w:17,h:54,on:false},
   {x:141,y:535,w:17,h:54,on:false},
-  {x:709,y:500,w:17,h:54,on:false},
-  {x:684,y:535,w:17,h:54,on:false},
+  {x:650,y:500,w:17,h:54,on:false},
+  {x:625,y:535,w:17,h:54,on:false},
   {x:210,y:630,w:48,h:14,on:false},
   {x:593,y:630,w:48,h:14,on:false}
 ];
@@ -98,55 +98,58 @@ const posts = [
 ];
 
 const flippers = [
-  {px:285,py:930,len:100,width:22,rest:.24,active:-.60,angle:.24,pressed:false},
-  {px:565,py:930,len:100,width:22,rest:Math.PI-.24,active:Math.PI+.60,angle:Math.PI-.24,pressed:false}
+  {px:270,py:930,len:92,width:22,rest:.23,active:-.62,angle:.23,pressed:false},
+  {px:585,py:930,len:92,width:22,rest:Math.PI-.23,active:Math.PI+.62,angle:Math.PI-.23,pressed:false}
 ];
 
 const walls = [
-  // Main shell with an upper-right opening for the shooter lane.
+  // Main playfield cabinet. Right wall begins below the shooter exit.
   [44,1010,44,170],
   [44,170,145,62],
-  [145,62,655,62],
-  [655,62,730,145],
-  [730,300,730,1010],
+  [145,62,650,62],
+  [650,62,720,135],
+  [720,330,720,1010],
 
-  // Upper orbit guides
-  [72,350,86,190],[86,190,160,115],
-  [700,350,686,190],[686,190,620,118],
-  [116,380,124,245],[124,245,188,178],
-  [656,380,648,245],[648,245,590,182],
+  // Left orbit only
+  [72,350,86,190],
+  [86,190,160,115],
+  [116,380,124,245],
+  [124,245,188,178],
 
-  // Mid-table return rails
-  [70,570,92,430],[92,430,145,380],
-  [700,570,678,430],[678,430,625,380],
+  // Open right-side deflector, far away from the shooter exit
+  [620,365,665,420],
 
-  // Smooth lower funnels with no closed pockets
-  [44,690,155,770],[155,770,215,840],
-  [730,690,620,770],[620,770,560,840],
+  // Mid-table returns
+  [70,570,92,430],
+  [92,430,145,380],
+  [690,570,668,450],
+  [668,450,625,405],
 
-  // Inlanes feed directly toward the flippers
-  [215,840,255,885],
-  [560,840,520,885],
+  // Smooth lower funnels
+  [44,690,160,780],
+  [160,780,220,850],
+  [720,690,610,780],
+  [610,780,550,850],
+
+  // Inlanes directly toward flippers
+  [220,850,255,895],
+  [550,850,520,895],
 
   // Open outlanes
-  [82,735,145,835],
-  [692,735,630,835],
-
-  // Short return guides
-  [255,885,270,905],
-  [520,885,535,905],
+  [82,735,145,840],
+  [682,735,620,840],
 
   // Wide center drain
-  [44,1010,245,1010],
-  [595,1010,730,1010]
+  [44,1010,220,1010],
+  [630,1010,720,1010]
 ];
 
-// Triangle slingshots removed so there are no corner trap pockets.
+// No triangle slingshots and no enclosed side pockets.
 const slings = [];
 
 const orbitSensors = [
   {x:110,y:205,w:45,h:90,armed:true},
-  {x:695,y:205,w:45,h:90,armed:true}
+  {x:625,y:205,w:45,h:90,armed:true}
 ];
 
 const reactor = {x:425,y:650,r:67,pulse:0,hits:0};
@@ -370,23 +373,32 @@ function update(dt) {
   if(ball.trail.length>12)ball.trail.pop();
 
   /*
-    Clear shooter lane:
-    - The inner divider exists only below y=300.
-    - Between y=300 and y=145 the lane bends left through a real opening.
-    - No playfield rail crosses the route.
-  */
-  if(ball.y>300){
-    if(ball.x-ball.r<790){ball.x=790+ball.r;ball.vx=Math.abs(ball.vx)*.85}
-    if(ball.x+ball.r>850){ball.x=850-ball.r;ball.vx=-Math.abs(ball.vx)*.85}
-  }else if(ball.x>730){
-    ball.vx-=34*dt;
-    if(ball.y<220)ball.vx-=42*dt;
-    if(ball.y<170&&ball.x>750)ball.vx=-Math.max(7,Math.abs(ball.vx));
-  }
+    SINGLE SHOOTER TUNNEL WITH GUARANTEED HANDOFF
 
-  // Once the ball crosses the mouth, keep it inside the playfield.
-  if(ball.y<300&&ball.x<790&&ball.x>730){
-    ball.vx-=12*dt;
+    The ball rises inside x=790..850.
+    When it reaches the top sensor, a hidden kicker places it at the open
+    right entrance and shoots it left into the main playfield. This mirrors
+    the automatic feed used by many real and digital pinball machines.
+  */
+  if(ball.y > 285){
+    // Keep the ball inside the one shooter tunnel.
+    if(ball.x - ball.r < 790){
+      ball.x = 790 + ball.r;
+      ball.vx = Math.abs(ball.vx) * .8;
+    }
+    if(ball.x + ball.r > 850){
+      ball.x = 850 - ball.r;
+      ball.vx = -Math.abs(ball.vx) * .8;
+    }
+  }else if(ball.x > 750){
+    // Guaranteed entry into the playable field. No rail can block this.
+    ball.x = 690;
+    ball.y = 230;
+    ball.vx = -9.5;
+    ball.vy = 2.2;
+    emit(ball.x,ball.y,C.cyan,10,4);
+    setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
+    tone(720,.08,"sine",.035);
   }
 
   // Main walls.
@@ -581,10 +593,10 @@ function drawShell(){
   ctx.moveTo(44,1010);
   ctx.lineTo(44,170);
   ctx.lineTo(145,62);
-  ctx.lineTo(655,62);
-  ctx.lineTo(730,145);
-  ctx.moveTo(730,300);
-  ctx.lineTo(730,1010);
+  ctx.lineTo(650,62);
+  ctx.lineTo(720,135);
+  ctx.moveTo(720,330);
+  ctx.lineTo(720,1010);
   ctx.stroke();
 
   ctx.strokeStyle=C.cyan;
@@ -594,17 +606,19 @@ function drawShell(){
   ctx.stroke();
   ctx.restore();
 
-  // Shooter lane with a visible, unobstructed bend into the playfield.
-  neonLine(790,300,790,1010,C.cyan,8);
-  neonLine(850,1010,850,165,C.cyan,8);
-  neonLine(850,165,815,115,C.cyan,8);
-  neonLine(815,115,760,105,C.cyan,8);
-  neonLine(760,105,735,145,C.cyan,8);
+  // Exactly one shooter tunnel.
+  neonLine(790,285,790,1010,C.cyan,8);
+  neonLine(850,1010,850,150,C.cyan,8);
 
-  // Rail art. No triangles and no overlapping corner geometry.
+  // One clear top elbow that points into the main field.
+  neonLine(850,150,820,108,C.cyan,8);
+  neonLine(820,108,770,98,C.cyan,8);
+  neonLine(770,98,735,138,C.cyan,8);
+
+  // Clean playfield rails with no obstacle beside the shooter mouth.
   walls.slice(5).forEach((w,i)=>{
-    const color=i<8?C.blue:(i<16?C.cyan:C.gold);
-    neonLine(w[0],w[1],w[2],w[3],color,i<8?9:7);
+    const color=i<4?C.blue:(i<9?C.cyan:C.gold);
+    neonLine(w[0],w[1],w[2],w[3],color,i<4?9:7);
   });
 }
 
@@ -675,19 +689,6 @@ function drawTargets(){
 }
 
 function drawSlings(){}
-
-function drawPosts(){
-  posts.forEach(p=>{
-    ctx.save();
-    ctx.fillStyle="#eaffff";
-    ctx.shadowColor=C.cyan;
-    ctx.shadowBlur=15;
-    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#17253b";
-    ctx.beginPath();ctx.arc(p.x,p.y,p.r*.48,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  });
-}
 
 function drawFlippers(){
   flippers.forEach(f=>{
