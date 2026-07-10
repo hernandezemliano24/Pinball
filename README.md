@@ -120,3 +120,12 @@ sudo cat /var/log/pinball-deploy.log
 - Lower side geometry uses continuous funnels with no enclosed pockets.
 - Flippers are shorter and farther apart, creating a larger real center drain.
 - Added cache-busting query strings so browsers load the newest code after deployment.
+
+## Version 5 shooter-lane redesign
+
+- Replaced the two right-side channels with one single shooter tunnel.
+- Removed dark-blue rails from the tunnel entrance.
+- Added a strong leftward handoff into the main playfield.
+- Removed pink triangle slingshots completely.
+- Increased the gap between the flippers.
+- Simplified lower geometry to avoid all trap pockets.
