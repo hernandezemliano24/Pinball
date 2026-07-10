@@ -111,3 +111,12 @@ sudo cat /var/log/pinball-deploy.log
 - Shorter flippers with a real center drain gap.
 - Repositioned pink slingshots with clearance from the blue rails.
 - Continuous inlanes and outlanes that avoid corner traps.
+
+## Version 3 table fixes
+
+- Shooter lane now bends through an open upper-right entrance into the playfield.
+- No blue rail crosses the launch path.
+- Pink triangle slingshots were removed.
+- Lower side geometry uses continuous funnels with no enclosed pockets.
+- Flippers are shorter and farther apart, creating a larger real center drain.
+- Added cache-busting query strings so browsers load the newest code after deployment.

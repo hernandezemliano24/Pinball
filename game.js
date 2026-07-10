@@ -98,34 +98,51 @@ const posts = [
 ];
 
 const flippers = [
-  {px:300,py:930,len:110,width:22,rest:.25,active:-.58,angle:.25,pressed:false},
-  {px:550,py:930,len:110,width:22,rest:Math.PI-.25,active:Math.PI+.58,angle:Math.PI-.25,pressed:false}
+  {px:285,py:930,len:100,width:22,rest:.24,active:-.60,angle:.24,pressed:false},
+  {px:565,py:930,len:100,width:22,rest:Math.PI-.24,active:Math.PI+.60,angle:Math.PI-.24,pressed:false}
 ];
 
 const walls = [
-  // Main playfield shell ends before the launch lane
-  [44,1010,44,170],[44,170,145,62],[145,62,665,62],[665,62,760,170],[760,170,760,1010],
+  // Main shell with an upper-right opening for the shooter lane.
+  [44,1010,44,170],
+  [44,170,145,62],
+  [145,62,655,62],
+  [655,62,730,145],
+  [730,300,730,1010],
+
   // Upper orbit guides
-  [72,350,86,190],[86,190,160,115],[732,350,718,190],[718,190,645,115],
-  [116,380,124,245],[124,245,188,178],[688,380,680,245],[680,245,616,178],
-  // Mid side returns
-  [70,570,92,430],[92,430,145,380],[738,570,716,430],[716,430,663,380],
-  // Smooth outer funnels
-  [44,690,155,770],[155,770,195,825],[760,690,650,770],[650,770,610,825],
-  // Inlane guides feeding the flippers
-  [195,825,260,875],[610,825,545,875],
+  [72,350,86,190],[86,190,160,115],
+  [700,350,686,190],[686,190,620,118],
+  [116,380,124,245],[124,245,188,178],
+  [656,380,648,245],[648,245,590,182],
+
+  // Mid-table return rails
+  [70,570,92,430],[92,430,145,380],
+  [700,570,678,430],[678,430,625,380],
+
+  // Smooth lower funnels with no closed pockets
+  [44,690,155,770],[155,770,215,840],
+  [730,690,620,770],[620,770,560,840],
+
+  // Inlanes feed directly toward the flippers
+  [215,840,255,885],
+  [560,840,520,885],
+
   // Open outlanes
-  [78,735,145,835],[726,735,660,835],
-  // Short return rails
-  [260,875,282,902],[545,875,568,902],
-  // Bottom shell leaves the center drain open
-  [44,1010,270,1010],[540,1010,760,1010]
+  [82,735,145,835],
+  [692,735,630,835],
+
+  // Short return guides
+  [255,885,270,905],
+  [520,885,535,905],
+
+  // Wide center drain
+  [44,1010,245,1010],
+  [595,1010,730,1010]
 ];
 
-const slings = [
-  {a:[175,705],b:[255,810],c:[180,800],points:75},
-  {a:[635,705],b:[555,810],c:[630,800],points:75}
-];
+// Triangle slingshots removed so there are no corner trap pockets.
+const slings = [];
 
 const orbitSensors = [
   {x:110,y:205,w:45,h:90,armed:true},
@@ -311,11 +328,6 @@ function flipperCollision(f) {
   return hit;
 }
 
-function pointInTriangle(px,py,a,b,c) {
-  const area=(p1,p2,p3)=>(p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y))/2;
-  const A=Math.abs(area(a,b,c));
-  return Math.abs(A-Math.abs(area({x:px,y:py},b,c))-Math.abs(area(a,{x:px,y:py},c))-Math.abs(area(a,b,{x:px,y:py})))<3;
-}
 
 function update(dt) {
   if(paused) return;
@@ -357,13 +369,24 @@ function update(dt) {
   ball.trail.unshift({x:ball.x,y:ball.y});
   if(ball.trail.length>12)ball.trail.pop();
 
-  // Dedicated launch lane: clear walls below y=175, open handoff above it.
-  if(ball.y>175){
+  /*
+    Clear shooter lane:
+    - The inner divider exists only below y=300.
+    - Between y=300 and y=145 the lane bends left through a real opening.
+    - No playfield rail crosses the route.
+  */
+  if(ball.y>300){
     if(ball.x-ball.r<790){ball.x=790+ball.r;ball.vx=Math.abs(ball.vx)*.85}
     if(ball.x+ball.r>850){ball.x=850-ball.r;ball.vx=-Math.abs(ball.vx)*.85}
-  }else if(ball.x>760){
-    ball.vx-=18*dt;
-    if(ball.y<120)ball.vy=Math.max(ball.vy,-8);
+  }else if(ball.x>730){
+    ball.vx-=34*dt;
+    if(ball.y<220)ball.vx-=42*dt;
+    if(ball.y<170&&ball.x>750)ball.vx=-Math.max(7,Math.abs(ball.vx));
+  }
+
+  // Once the ball crosses the mouth, keep it inside the playfield.
+  if(ball.y<300&&ball.x<790&&ball.x>730){
+    ball.vx-=12*dt;
   }
 
   // Main walls.
@@ -441,17 +464,7 @@ function update(dt) {
     if(ball.y>o.y+140)o.armed=true;
   });
 
-  // Slingshots.
-  slings.forEach(s=>{
-    segmentCollision(...s.a,...s.b,8,1.05,()=>{
-      ball.vy-=4.2;
-      addScore(s.points);
-      emit(ball.x,ball.y,C.pink,8,4);
-      tone(330,.04,"square",.025);
-    });
-    segmentCollision(...s.b,...s.c,8,.95);
-    segmentCollision(...s.c,...s.a,8,.95);
-  });
+
 
   flippers.forEach(flipperCollision);
 
@@ -562,12 +575,18 @@ function drawBackground(){
 function drawShell(){
   ctx.save();
   ctx.lineJoin="round";
-  ctx.fillStyle="rgba(4,7,15,.56)";
   ctx.strokeStyle="#15233d";
   ctx.lineWidth=26;
   ctx.beginPath();
-  ctx.moveTo(44,1010);ctx.lineTo(44,170);ctx.lineTo(145,62);ctx.lineTo(665,62);ctx.lineTo(760,170);ctx.lineTo(760,1010);
+  ctx.moveTo(44,1010);
+  ctx.lineTo(44,170);
+  ctx.lineTo(145,62);
+  ctx.lineTo(655,62);
+  ctx.lineTo(730,145);
+  ctx.moveTo(730,300);
+  ctx.lineTo(730,1010);
   ctx.stroke();
+
   ctx.strokeStyle=C.cyan;
   ctx.shadowColor=C.cyan;
   ctx.shadowBlur=18;
@@ -575,15 +594,16 @@ function drawShell(){
   ctx.stroke();
   ctx.restore();
 
-  // Clear launch lane and curved entrance into the playfield.
-  neonLine(790,175,790,1010,C.cyan,8);
-  neonLine(850,1010,850,170,C.cyan,8);
-  neonLine(850,170,805,105,C.cyan,8);
-  neonLine(805,105,760,95,C.cyan,8);
+  // Shooter lane with a visible, unobstructed bend into the playfield.
+  neonLine(790,300,790,1010,C.cyan,8);
+  neonLine(850,1010,850,165,C.cyan,8);
+  neonLine(850,165,815,115,C.cyan,8);
+  neonLine(815,115,760,105,C.cyan,8);
+  neonLine(760,105,735,145,C.cyan,8);
 
-  // Rail art.
+  // Rail art. No triangles and no overlapping corner geometry.
   walls.slice(5).forEach((w,i)=>{
-    const color=i<8?C.blue:(i<12?C.pink:C.cyan);
+    const color=i<8?C.blue:(i<16?C.cyan:C.gold);
     neonLine(w[0],w[1],w[2],w[3],color,i<8?9:7);
   });
 }
@@ -654,20 +674,7 @@ function drawTargets(){
   });
 }
 
-function drawSlings(){
-  for(const s of slings){
-    ctx.save();
-    ctx.fillStyle="rgba(31,80,150,.55)";
-    ctx.strokeStyle=C.pink;
-    ctx.shadowColor=C.pink;
-    ctx.shadowBlur=14;
-    ctx.lineWidth=6;
-    ctx.beginPath();
-    ctx.moveTo(...s.a);ctx.lineTo(...s.b);ctx.lineTo(...s.c);ctx.closePath();
-    ctx.fill();ctx.stroke();
-    ctx.restore();
-  }
-}
+function drawSlings(){}
 
 function drawPosts(){
   posts.forEach(p=>{
@@ -716,8 +723,8 @@ function drawBall(){
 function drawLauncher(){
   ctx.save();
   ctx.strokeStyle="#263c55";ctx.lineWidth=3;
-  ctx.strokeRect(812,780,18,175);
-  const h=state.ready?state.launchCharge*171:0;
+  ctx.strokeRect(812,790,18,165);
+  const h=state.ready?state.launchCharge*161:0;
   const g=ctx.createLinearGradient(0,951,0,780);
   g.addColorStop(0,C.lime);g.addColorStop(.6,C.gold);g.addColorStop(1,C.pink);
   ctx.fillStyle=g;ctx.fillRect(814,953-h,14,h);
