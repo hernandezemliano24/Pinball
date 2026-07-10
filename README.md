@@ -42,7 +42,7 @@ The design is inspired by classic space-themed computer pinball tables, but all 
 Your repository URL should be:
 
 ```text
-https://github.com/hernandezemiliano24/Pinball
+https://github.com/hernandezemliano24/Pinball
 ```
 
 From the folder containing these files:
@@ -52,7 +52,7 @@ git init
 git add .
 git commit -m "Add Cyborg Core mission pinball"
 git branch -M main
-git remote add origin https://github.com/hernandezemiliano24/Pinball.git
+git remote add origin https://github.com/hernandezemliano24/Pinball.git
 git push -u origin main
 ```
 
@@ -103,3 +103,11 @@ Check the update log:
 ```bash
 sudo cat /var/log/pinball-deploy.log
 ```
+
+
+## Geometry fixes in this version
+
+- Dedicated open launch lane that curves into the playfield above the divider.
+- Shorter flippers with a real center drain gap.
+- Repositioned pink slingshots with clearance from the blue rails.
+- Continuous inlanes and outlanes that avoid corner traps.

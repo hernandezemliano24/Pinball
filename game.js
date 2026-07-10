@@ -64,7 +64,7 @@ const missions = [
   {name:"FIREWALL BREACH", text:"Hit eight cyber targets.", goal:8, type:"target", reward:10000}
 ];
 
-const ball = {x:810,y:952,r:11,vx:0,vy:0,trail:[]};
+const ball = {x:821,y:965,r:11,vx:0,vy:0,trail:[]};
 
 const bumpers = [
   {x:300,y:235,r:44,points:250,color:C.pink,label:"250",pulse:0},
@@ -98,31 +98,33 @@ const posts = [
 ];
 
 const flippers = [
-  {px:330,py:930,len:132,width:22,rest:.30,active:-.55,angle:.30,pressed:false},
-  {px:520,py:930,len:132,width:22,rest:Math.PI-.30,active:Math.PI+.55,angle:Math.PI-.30,pressed:false}
+  {px:300,py:930,len:110,width:22,rest:.25,active:-.58,angle:.25,pressed:false},
+  {px:550,py:930,len:110,width:22,rest:Math.PI-.25,active:Math.PI+.58,angle:Math.PI-.25,pressed:false}
 ];
 
 const walls = [
-  // Main upper shell
-  [44,1010,44,170],[44,170,150,62],[150,62,700,62],[700,62,806,170],[806,170,806,1010],
+  // Main playfield shell ends before the launch lane
+  [44,1010,44,170],[44,170,145,62],[145,62,665,62],[665,62,760,170],[760,170,760,1010],
   // Upper orbit guides
-  [73,335,88,185],[88,185,170,112],[777,335,762,185],[762,185,680,112],
-  [118,370,126,230],[126,230,195,166],[732,370,724,230],[724,230,655,166],
-  // Mid side rails
-  [75,550,98,410],[98,410,152,360],[775,550,752,410],[752,410,698,360],
-  // Lower outlane walls
-  [44,685,205,820],[806,685,645,820],
-  // Inlane walls
-  [125,670,245,820],[725,670,605,820],
-  // Return guides
-  [205,820,298,880],[645,820,552,880],
-  // Drain funnel
-  [44,1010,268,1010],[582,1010,806,1010]
+  [72,350,86,190],[86,190,160,115],[732,350,718,190],[718,190,645,115],
+  [116,380,124,245],[124,245,188,178],[688,380,680,245],[680,245,616,178],
+  // Mid side returns
+  [70,570,92,430],[92,430,145,380],[738,570,716,430],[716,430,663,380],
+  // Smooth outer funnels
+  [44,690,155,770],[155,770,195,825],[760,690,650,770],[650,770,610,825],
+  // Inlane guides feeding the flippers
+  [195,825,260,875],[610,825,545,875],
+  // Open outlanes
+  [78,735,145,835],[726,735,660,835],
+  // Short return rails
+  [260,875,282,902],[545,875,568,902],
+  // Bottom shell leaves the center drain open
+  [44,1010,270,1010],[540,1010,760,1010]
 ];
 
 const slings = [
-  {a:[145,690],b:[245,820],c:[125,805],points:75},
-  {a:[705,690],b:[605,820],c:[725,805],points:75}
+  {a:[175,705],b:[255,810],c:[180,800],points:75},
+  {a:[635,705],b:[555,810],c:[630,800],points:75}
 ];
 
 const orbitSensors = [
@@ -133,8 +135,8 @@ const orbitSensors = [
 const reactor = {x:425,y:650,r:67,pulse:0,hits:0};
 
 function resetBall() {
-  ball.x = 810;
-  ball.y = 952;
+  ball.x = 821;
+  ball.y = 965;
   ball.vx = 0;
   ball.vy = 0;
   ball.trail.length = 0;
@@ -355,12 +357,14 @@ function update(dt) {
   ball.trail.unshift({x:ball.x,y:ball.y});
   if(ball.trail.length>12)ball.trail.pop();
 
-  // Keep launcher lane clear, then curve ball into the playfield at the top.
-  if(ball.y>145 && ball.x+ball.r>773 && ball.x-ball.r<789){
-    if(ball.vx>0){ball.x=773-ball.r;ball.vx=-Math.abs(ball.vx)}
-    else{ball.x=789+ball.r;ball.vx=Math.abs(ball.vx)}
+  // Dedicated launch lane: clear walls below y=175, open handoff above it.
+  if(ball.y>175){
+    if(ball.x-ball.r<790){ball.x=790+ball.r;ball.vx=Math.abs(ball.vx)*.85}
+    if(ball.x+ball.r>850){ball.x=850-ball.r;ball.vx=-Math.abs(ball.vx)*.85}
+  }else if(ball.x>760){
+    ball.vx-=18*dt;
+    if(ball.y<120)ball.vy=Math.max(ball.vy,-8);
   }
-  if(ball.x>780&&ball.y<160&&ball.vy<0)ball.vx-=.34;
 
   // Main walls.
   walls.forEach(w=>segmentCollision(...w,7,.9));
@@ -562,7 +566,7 @@ function drawShell(){
   ctx.strokeStyle="#15233d";
   ctx.lineWidth=26;
   ctx.beginPath();
-  ctx.moveTo(44,1010);ctx.lineTo(44,170);ctx.lineTo(150,62);ctx.lineTo(700,62);ctx.lineTo(806,170);ctx.lineTo(806,1010);
+  ctx.moveTo(44,1010);ctx.lineTo(44,170);ctx.lineTo(145,62);ctx.lineTo(665,62);ctx.lineTo(760,170);ctx.lineTo(760,1010);
   ctx.stroke();
   ctx.strokeStyle=C.cyan;
   ctx.shadowColor=C.cyan;
@@ -571,12 +575,11 @@ function drawShell(){
   ctx.stroke();
   ctx.restore();
 
-  // Launcher lane.
-  neonLine(781,152,781,1010,C.cyan,8);
-  ctx.save();
-  ctx.strokeStyle="#263750";ctx.lineWidth=20;
-  ctx.beginPath();ctx.moveTo(806,1010);ctx.lineTo(806,170);ctx.stroke();
-  ctx.restore();
+  // Clear launch lane and curved entrance into the playfield.
+  neonLine(790,175,790,1010,C.cyan,8);
+  neonLine(850,1010,850,170,C.cyan,8);
+  neonLine(850,170,805,105,C.cyan,8);
+  neonLine(805,105,760,95,C.cyan,8);
 
   // Rail art.
   walls.slice(5).forEach((w,i)=>{
@@ -713,13 +716,13 @@ function drawBall(){
 function drawLauncher(){
   ctx.save();
   ctx.strokeStyle="#263c55";ctx.lineWidth=3;
-  ctx.strokeRect(800,760,18,180);
-  const h=state.ready?state.launchCharge*176:0;
-  const g=ctx.createLinearGradient(0,936,0,760);
+  ctx.strokeRect(812,780,18,175);
+  const h=state.ready?state.launchCharge*171:0;
+  const g=ctx.createLinearGradient(0,951,0,780);
   g.addColorStop(0,C.lime);g.addColorStop(.6,C.gold);g.addColorStop(1,C.pink);
-  ctx.fillStyle=g;ctx.fillRect(802,938-h,14,h);
+  ctx.fillStyle=g;ctx.fillRect(814,953-h,14,h);
   ctx.fillStyle=C.white;
-  ctx.beginPath();ctx.arc(810,955,15,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(821,968,15,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 
