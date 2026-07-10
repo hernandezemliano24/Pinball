@@ -155,3 +155,12 @@ sudo cat /var/log/pinball-deploy.log
 - Moved the real ball spawn to the center of the single shooter tunnel.
 - Preserved the wider center drain between the two flippers.
 - Added cache version `v=8`.
+
+## Version 9 smooth shooter exit
+
+- Shooter handoff now happens exactly once per ball.
+- Ball launches straight upward with no horizontal drift.
+- Ball enters lower in the open playfield instead of beside the top rail.
+- Ball receives a downward-left velocity so gravity carries it naturally toward the flippers.
+- Upper-right guide collisions are temporarily disabled while the ball clears the exit.
+- Added cache version `v=9`.

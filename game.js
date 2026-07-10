@@ -34,6 +34,7 @@ let accumulator = 0;
 const STEP = 1 / 120;
 let paused = false;
 let audio;
+let shooterTransferred = false;
 
 const state = {
   score:0,
@@ -164,6 +165,7 @@ function resetBall() {
   state.ready = true;
   state.charging = false;
   state.launchCharge = 0;
+  shooterTransferred = false;
   state.combo = 0;
   state.comboTimer = 0;
   rollovers.forEach(r => r.on = false);
@@ -257,7 +259,7 @@ function updateUI() {
 function launch() {
   if (!state.ready || state.gameOver) return;
   const power = 14 + state.launchCharge * 12;
-  ball.vx = -1.5;
+  ball.vx = 0;
   ball.vy = -power;
   state.ready = false;
   state.charging = false;
@@ -374,32 +376,43 @@ function update(dt) {
   if(ball.trail.length>12)ball.trail.pop();
 
   /*
-    ONE SHOOTER TUNNEL:
-    - Outer tunnel wall is the cabinet wall at x=820.
-    - One inner divider at x=770.
-    - At the top, the divider ends and the ball is kicked left into play.
+    SMOOTH ONE-TIME SHOOTER HANDOFF:
+    The ball rises in the tunnel once, then is released into open space
+    below the upper bumpers with a clean diagonal velocity.
   */
-  if(ball.y > 285){
-    if(ball.x - ball.r < 770){
-      ball.x = 770 + ball.r;
-      ball.vx = Math.abs(ball.vx) * .85;
+  if(!shooterTransferred){
+    if(ball.y > 285){
+      if(ball.x - ball.r < 770){
+        ball.x = 770 + ball.r;
+        ball.vx = Math.abs(ball.vx) * .35;
+      }
+      if(ball.x + ball.r > 820){
+        ball.x = 820 - ball.r;
+        ball.vx = -Math.abs(ball.vx) * .35;
+      }
+    }else{
+      ball.x = 690;
+      ball.y = 315;
+      ball.vx = -7.8;
+      ball.vy = 5.5;
+      shooterTransferred = true;
+      emit(ball.x,ball.y,C.cyan,10,4);
+      setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
+      tone(720,.08,"sine",.035);
     }
-    if(ball.x + ball.r > 820){
-      ball.x = 820 - ball.r;
-      ball.vx = -Math.abs(ball.vx) * .85;
-    }
-  }else if(ball.x > 735){
-    ball.x = 700;
-    ball.y = 235;
-    ball.vx = -9;
-    ball.vy = 2;
-    emit(ball.x,ball.y,C.cyan,10,4);
-    setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
-    tone(720,.08,"sine",.035);
   }
 
-  // Main walls.
-  walls.forEach(w=>segmentCollision(...w,7,.9));
+  // Main walls. Ignore the upper-right guide rails while the ball
+  // is clearing the shooter exit so it cannot be bounced back upward.
+  walls.forEach((w,i)=>{
+    const clearingExit =
+      shooterTransferred &&
+      ball.x > 610 &&
+      ball.y < 390 &&
+      (i === 9 || i === 10);
+
+    if(!clearingExit) segmentCollision(...w,7,.9);
+  });
 
   // Bumpers.
   bumpers.forEach(b=>{
