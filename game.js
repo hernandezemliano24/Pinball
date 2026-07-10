@@ -64,7 +64,7 @@ const missions = [
   {name:"FIREWALL BREACH", text:"Hit eight cyber targets.", goal:8, type:"target", reward:10000}
 ];
 
-const ball = {x:821,y:965,r:11,vx:0,vy:0,trail:[]};
+const ball = {x:820,y:965,r:11,vx:0,vy:0,trail:[]};
 
 const bumpers = [
   {x:300,y:235,r:44,points:250,color:C.pink,label:"250",pulse:0},
@@ -98,26 +98,27 @@ const posts = [
 ];
 
 const flippers = [
-  {px:270,py:930,len:92,width:22,rest:.23,active:-.62,angle:.23,pressed:false},
-  {px:585,py:930,len:92,width:22,rest:Math.PI-.23,active:Math.PI+.62,angle:Math.PI-.23,pressed:false}
+  {px:275,py:930,len:108,width:22,rest:.24,active:-.60,angle:.24,pressed:false},
+  {px:575,py:930,len:108,width:22,rest:Math.PI-.24,active:Math.PI+.60,angle:Math.PI-.24,pressed:false}
 ];
 
 const walls = [
-  // Main playfield cabinet. Right wall begins below the shooter exit.
+  // Main cabinet shell
   [44,1010,44,170],
   [44,170,145,62],
-  [145,62,650,62],
-  [650,62,720,135],
-  [720,330,720,1010],
+  [145,62,665,62],
+  [665,62,820,150],
+  [820,150,820,1010],
 
-  // Left orbit only
+  // Left orbit guides
   [72,350,86,190],
   [86,190,160,115],
   [116,380,124,245],
   [124,245,188,178],
 
-  // Open right-side deflector, far away from the shooter exit
-  [620,365,665,420],
+  // Right-side guides kept away from the shooter exit
+  [610,200,665,255],
+  [665,255,680,360],
 
   // Mid-table returns
   [70,570,92,430],
@@ -126,25 +127,25 @@ const walls = [
   [668,450,625,405],
 
   // Smooth lower funnels
-  [44,690,160,780],
-  [160,780,220,850],
-  [720,690,610,780],
-  [610,780,550,850],
+  [44,690,155,770],
+  [155,770,220,850],
+  [760,690,650,770],
+  [650,770,585,850],
 
-  // Inlanes directly toward flippers
+  // Inlanes
   [220,850,255,895],
-  [550,850,520,895],
+  [585,850,550,895],
 
-  // Open outlanes
+  // Outlanes
   [82,735,145,840],
-  [682,735,620,840],
+  [722,735,660,840],
 
   // Wide center drain
-  [44,1010,220,1010],
-  [630,1010,720,1010]
+  [44,1010,225,1010],
+  [615,1010,820,1010]
 ];
 
-// No triangle slingshots and no enclosed side pockets.
+// No triangle slingshots or closed trap pockets.
 const slings = [];
 
 const orbitSensors = [
@@ -373,29 +374,25 @@ function update(dt) {
   if(ball.trail.length>12)ball.trail.pop();
 
   /*
-    SINGLE SHOOTER TUNNEL WITH GUARANTEED HANDOFF
-
-    The ball rises inside x=790..850.
-    When it reaches the top sensor, a hidden kicker places it at the open
-    right entrance and shoots it left into the main playfield. This mirrors
-    the automatic feed used by many real and digital pinball machines.
+    ONE SHOOTER TUNNEL:
+    - Outer tunnel wall is the cabinet wall at x=820.
+    - One inner divider at x=770.
+    - At the top, the divider ends and the ball is kicked left into play.
   */
   if(ball.y > 285){
-    // Keep the ball inside the one shooter tunnel.
-    if(ball.x - ball.r < 790){
-      ball.x = 790 + ball.r;
-      ball.vx = Math.abs(ball.vx) * .8;
+    if(ball.x - ball.r < 770){
+      ball.x = 770 + ball.r;
+      ball.vx = Math.abs(ball.vx) * .85;
     }
-    if(ball.x + ball.r > 850){
-      ball.x = 850 - ball.r;
-      ball.vx = -Math.abs(ball.vx) * .8;
+    if(ball.x + ball.r > 820){
+      ball.x = 820 - ball.r;
+      ball.vx = -Math.abs(ball.vx) * .85;
     }
-  }else if(ball.x > 750){
-    // Guaranteed entry into the playable field. No rail can block this.
-    ball.x = 690;
-    ball.y = 230;
-    ball.vx = -9.5;
-    ball.vy = 2.2;
+  }else if(ball.x > 735){
+    ball.x = 700;
+    ball.y = 235;
+    ball.vx = -9;
+    ball.vy = 2;
     emit(ball.x,ball.y,C.cyan,10,4);
     setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
     tone(720,.08,"sine",.035);
@@ -593,10 +590,9 @@ function drawShell(){
   ctx.moveTo(44,1010);
   ctx.lineTo(44,170);
   ctx.lineTo(145,62);
-  ctx.lineTo(650,62);
-  ctx.lineTo(720,135);
-  ctx.moveTo(720,330);
-  ctx.lineTo(720,1010);
+  ctx.lineTo(665,62);
+  ctx.lineTo(820,150);
+  ctx.lineTo(820,1010);
   ctx.stroke();
 
   ctx.strokeStyle=C.cyan;
@@ -606,18 +602,17 @@ function drawShell(){
   ctx.stroke();
   ctx.restore();
 
-  // Exactly one shooter tunnel.
-  neonLine(790,285,790,1010,C.cyan,8);
-  neonLine(850,1010,850,150,C.cyan,8);
+  // ONE tunnel: cabinet wall outside, one divider inside.
+  neonLine(770,285,770,1010,C.cyan,8);
 
-  // One clear top elbow that points into the main field.
-  neonLine(850,150,820,108,C.cyan,8);
-  neonLine(820,108,770,98,C.cyan,8);
-  neonLine(770,98,735,138,C.cyan,8);
+  // Clear top elbow into the playfield.
+  neonLine(820,150,790,110,C.cyan,8);
+  neonLine(790,110,745,102,C.cyan,8);
+  neonLine(745,102,715,145,C.cyan,8);
 
-  // Clean playfield rails with no obstacle beside the shooter mouth.
+  // Clean playfield rails.
   walls.slice(5).forEach((w,i)=>{
-    const color=i<4?C.blue:(i<9?C.cyan:C.gold);
+    const color=i<4?C.blue:(i<8?C.cyan:C.gold);
     neonLine(w[0],w[1],w[2],w[3],color,i<4?9:7);
   });
 }
@@ -690,22 +685,6 @@ function drawTargets(){
 
 function drawSlings(){}
 
-function drawFlippers(){
-  flippers.forEach(f=>{
-    const ex=f.px+Math.cos(f.angle)*f.len;
-    const ey=f.py+Math.sin(f.angle)*f.len;
-    ctx.save();
-    ctx.strokeStyle="#28101d";
-    ctx.lineWidth=f.width+13;
-    ctx.lineCap="round";
-    ctx.beginPath();ctx.moveTo(f.px,f.py);ctx.lineTo(ex,ey);ctx.stroke();
-    neonLine(f.px,f.py,ex,ey,C.pink,f.width);
-    ctx.fillStyle=C.white;
-    ctx.beginPath();ctx.arc(f.px,f.py,8,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  });
-}
-
 function drawBall(){
   ball.trail.forEach((p,i)=>{
     ctx.fillStyle=`rgba(53,241,255,${.14*(1-i/ball.trail.length)})`;
@@ -724,13 +703,13 @@ function drawBall(){
 function drawLauncher(){
   ctx.save();
   ctx.strokeStyle="#263c55";ctx.lineWidth=3;
-  ctx.strokeRect(812,790,18,165);
+  ctx.strokeRect(790,790,18,165);
   const h=state.ready?state.launchCharge*161:0;
   const g=ctx.createLinearGradient(0,951,0,780);
   g.addColorStop(0,C.lime);g.addColorStop(.6,C.gold);g.addColorStop(1,C.pink);
-  ctx.fillStyle=g;ctx.fillRect(814,953-h,14,h);
+  ctx.fillStyle=g;ctx.fillRect(792,953-h,14,h);
   ctx.fillStyle=C.white;
-  ctx.beginPath();ctx.arc(821,968,15,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(800,968,15,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 

@@ -139,3 +139,11 @@ sudo cat /var/log/pinball-deploy.log
 - Right-side obstacles were moved away from the entrance.
 - Flippers are shorter and farther apart for a larger center drain.
 - Lower guides are continuous and contain no closed trap pockets.
+
+## Version 7 final tunnel/flipper restoration
+
+- Right side now uses the cabinet edge as the outer wall and only one inner divider.
+- Ball is restored and visibly starts inside the shooter tunnel.
+- Both flippers are restored with a wider center drain.
+- The shooter exit uses a reliable leftward handoff into the playfield.
+- No triangle slingshots or closed corner pockets.
