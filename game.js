@@ -64,7 +64,7 @@ const missions = [
   {name:"FIREWALL BREACH", text:"Hit eight cyber targets.", goal:8, type:"target", reward:10000}
 ];
 
-const ball = {x:820,y:965,r:11,vx:0,vy:0,trail:[]};
+const ball = {x:800,y:965,r:11,vx:0,vy:0,trail:[]};
 
 const bumpers = [
   {x:300,y:235,r:44,points:250,color:C.pink,label:"250",pulse:0},
@@ -156,7 +156,7 @@ const orbitSensors = [
 const reactor = {x:425,y:650,r:67,pulse:0,hits:0};
 
 function resetBall() {
-  ball.x = 821;
+  ball.x = 800;
   ball.y = 965;
   ball.vx = 0;
   ball.vy = 0;
@@ -532,7 +532,7 @@ function neonCircle(x,y,r,color,width=7){
   ctx.save();
   ctx.strokeStyle=color;
   ctx.shadowColor=color;
-  ctx.shadowBlur=18;
+  ctx.shadowBlur=24;
   ctx.lineWidth=width;
   ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();
   ctx.restore();
@@ -683,6 +683,53 @@ function drawTargets(){
   });
 }
 
+
+function drawPosts(){
+  posts.forEach(p=>{
+    ctx.save();
+    ctx.fillStyle="#eaffff";
+    ctx.shadowColor=C.cyan;
+    ctx.shadowBlur=15;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#17253b";
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r*.48,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawFlippers(){
+  flippers.forEach(f=>{
+    const ex=f.px+Math.cos(f.angle)*f.len;
+    const ey=f.py+Math.sin(f.angle)*f.len;
+
+    ctx.save();
+    ctx.lineCap="round";
+
+    // Dark body gives each flipper a solid arcade-machine shape.
+    ctx.strokeStyle="#2a1020";
+    ctx.lineWidth=f.width+14;
+    ctx.beginPath();
+    ctx.moveTo(f.px,f.py);
+    ctx.lineTo(ex,ey);
+    ctx.stroke();
+
+    neonLine(f.px,f.py,ex,ey,C.pink,f.width);
+
+    ctx.fillStyle=C.white;
+    ctx.shadowColor=C.white;
+    ctx.shadowBlur=10;
+    ctx.beginPath();
+    ctx.arc(f.px,f.py,9,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
 function drawSlings(){}
 
 function drawBall(){
@@ -709,7 +756,7 @@ function drawLauncher(){
   g.addColorStop(0,C.lime);g.addColorStop(.6,C.gold);g.addColorStop(1,C.pink);
   ctx.fillStyle=g;ctx.fillRect(792,953-h,14,h);
   ctx.fillStyle=C.white;
-  ctx.beginPath();ctx.arc(800,968,15,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(800,982,13,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
 

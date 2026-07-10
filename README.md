@@ -147,3 +147,11 @@ sudo cat /var/log/pinball-deploy.log
 - Both flippers are restored with a wider center drain.
 - The shooter exit uses a reliable leftward handoff into the playfield.
 - No triangle slingshots or closed corner pockets.
+
+## Version 8 ball and flipper repair
+
+- Restored the missing `drawPosts()` and `drawFlippers()` functions.
+- Fixed the JavaScript error that stopped rendering before the ball and flippers.
+- Moved the real ball spawn to the center of the single shooter tunnel.
+- Preserved the wider center drain between the two flippers.
+- Added cache version `v=8`.
