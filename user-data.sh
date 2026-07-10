@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_URL="https://github.com/hernandezemiliano24/Pinball.git"
+REPO_URL="https://github.com/hernandezemliano24/Pinball.git"
 BRANCH="main"
 APP_DIR="/opt/pinball"
 WEB_ROOT="/var/www/html"
@@ -18,7 +18,7 @@ else
   yum install -y httpd git
 fi
 
-systemctl enable httpd
+systemctl enable --now httpd
 
 rm -rf "$APP_DIR"
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
@@ -49,7 +49,7 @@ cat >/usr/local/bin/update-pinball <<'UPDATE'
 #!/bin/bash
 set -euo pipefail
 
-REPO_URL="https://github.com/hernandezemiliano24/Pinball.git"
+REPO_URL="https://github.com/hernandezemliano24/Pinball.git"
 BRANCH="main"
 TMP_DIR="$(mktemp -d)"
 WEB_ROOT="/var/www/html"
