@@ -9,9 +9,6 @@ LOG="/var/log/pinball-deploy.log"
 
 exec > >(tee -a "$LOG") 2>&1
 
-echo "Starting Cyborg Core Pinball deployment"
-
-# Amazon Linux 2023 uses DNF. The yum fallback also supports Amazon Linux 2.
 if command -v dnf >/dev/null 2>&1; then
   dnf install -y httpd git
 else
@@ -27,7 +24,6 @@ rm -rf "${WEB_ROOT:?}/"*
 cp -a "$APP_DIR"/. "$WEB_ROOT"/
 rm -rf "$WEB_ROOT/.git"
 
-# Read the Availability Zone with IMDSv2.
 TOKEN="$(curl -fsS --connect-timeout 2 -X PUT \
   http://169.254.169.254/latest/api/token \
   -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600' || true)"
@@ -48,12 +44,10 @@ find "$WEB_ROOT" -type f -exec chmod 644 {} \;
 cat >/usr/local/bin/update-pinball <<'UPDATE'
 #!/bin/bash
 set -euo pipefail
-
 REPO_URL="https://github.com/hernandezemliano24/Pinball.git"
 BRANCH="main"
 TMP_DIR="$(mktemp -d)"
 WEB_ROOT="/var/www/html"
-
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$TMP_DIR/repo"
@@ -79,11 +73,9 @@ find "$WEB_ROOT" -type d -exec chmod 755 {} \;
 find "$WEB_ROOT" -type f -exec chmod 644 {} \;
 
 systemctl restart httpd
-echo "Pinball deployment updated."
+echo "Pinball updated."
 UPDATE
 
 chmod 755 /usr/local/bin/update-pinball
-
 systemctl restart httpd
-
-echo "Cyborg Core Pinball deployed successfully in ${AZ}"
+echo "Cyber Pinball Arena deployed in ${AZ}"
