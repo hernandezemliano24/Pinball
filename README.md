@@ -164,3 +164,13 @@ sudo cat /var/log/pinball-deploy.log
 - Ball receives a downward-left velocity so gravity carries it naturally toward the flippers.
 - Upper-right guide collisions are temporarily disabled while the ball clears the exit.
 - Added cache version `v=9`.
+
+## Version 10 stable physics
+
+- Removed the artificial anti-stall nudges.
+- Reduced gravity and bounce energy for smoother movement.
+- Added a hard maximum ball-speed limit.
+- Removed the collision code that forced slow balls back to high speed.
+- Reduced bumper, reactor, wall, post, and flipper impulses.
+- Lowered shooter-entry velocity.
+- Added cache version `v=10`.

@@ -32,6 +32,10 @@ const keys = Object.create(null);
 let last = performance.now();
 let accumulator = 0;
 const STEP = 1 / 120;
+const GRAVITY = 12;
+const AIR_DRAG = 0.9985;
+const MAX_BALL_SPEED = 18;
+const MIN_ROLL_SPEED = 0.15;
 let paused = false;
 let audio;
 let shooterTransferred = false;
@@ -271,6 +275,15 @@ function launch() {
 function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
 function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
 
+function limitBallSpeed(max=MAX_BALL_SPEED){
+  const speed=Math.hypot(ball.vx,ball.vy);
+  if(speed>max){
+    const scale=max/speed;
+    ball.vx*=scale;
+    ball.vy*=scale;
+  }
+}
+
 function emit(x,y,color,count=8,speed=5) {
   for (let i=0;i<count;i++) {
     const a = Math.random()*Math.PI*2;
@@ -291,6 +304,9 @@ function circleCollision(o, bounce=1.85, onHit) {
   if (dot < 0) {
     ball.vx -= (1+bounce)*dot*nx;
     ball.vy -= (1+bounce)*dot*ny;
+    ball.vx*=0.99;
+    ball.vy*=0.99;
+    limitBallSpeed();
   }
   onHit?.(nx,ny);
   return true;
@@ -312,8 +328,9 @@ function segmentCollision(x1,y1,x2,y2,width=7,bounce=.88,onHit) {
   if (dot < 0) {
     ball.vx -= (1+bounce)*dot*nx;
     ball.vy -= (1+bounce)*dot*ny;
-    const speed=Math.hypot(ball.vx,ball.vy);
-    if(speed<3.2){ball.vx*=3.2/Math.max(speed,.1);ball.vy*=3.2/Math.max(speed,.1)}
+    ball.vx*=0.985;
+    ball.vy*=0.985;
+    limitBallSpeed();
     onHit?.(nx,ny);
   }
   return true;
@@ -324,8 +341,9 @@ function flipperCollision(f) {
   const ey=f.py+Math.sin(f.angle)*f.len;
   const hit=segmentCollision(f.px,f.py,ex,ey,f.width/2,1.02,(nx)=>{
     if(f.pressed){
-      ball.vy-=10.5;
-      ball.vx+=nx*4.5;
+      ball.vy-=6.8;
+      ball.vx+=nx*3.2;
+      limitBallSpeed(15);
       addScore(20);
       emit(ball.x,ball.y,C.pink,5,3);
       tone(150,.035,"square",.025);
@@ -366,9 +384,9 @@ function update(dt) {
     return;
   }
 
-  ball.vy+=21*dt;
-  ball.vx*=Math.pow(.995,dt*120);
-  ball.vy*=Math.pow(.995,dt*120);
+  ball.vy+=GRAVITY*dt;
+  ball.vx*=Math.pow(AIR_DRAG,dt*120);
+  ball.vy*=Math.pow(AIR_DRAG,dt*120);
   ball.x+=ball.vx;
   ball.y+=ball.vy;
 
@@ -393,8 +411,8 @@ function update(dt) {
     }else{
       ball.x = 690;
       ball.y = 315;
-      ball.vx = -7.8;
-      ball.vy = 5.5;
+      ball.vx = -4.8;
+      ball.vy = 2.6;
       shooterTransferred = true;
       emit(ball.x,ball.y,C.cyan,10,4);
       setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
@@ -411,15 +429,16 @@ function update(dt) {
       ball.y < 390 &&
       (i === 9 || i === 10);
 
-    if(!clearingExit) segmentCollision(...w,7,.9);
+    if(!clearingExit) segmentCollision(...w,7,.72);
   });
 
   // Bumpers.
   bumpers.forEach(b=>{
     circleCollision(b,1.7,(nx,ny)=>{
-      const speed=Math.max(10,Math.hypot(ball.vx,ball.vy));
-      ball.vx=nx*speed*1.08;
-      ball.vy=ny*speed*1.08;
+      const speed=clamp(Math.hypot(ball.vx,ball.vy)+2.2,7,12);
+      ball.vx=nx*speed;
+      ball.vy=ny*speed;
+      limitBallSpeed(14);
       b.pulse=1;
       addScore(b.points,"target");
       state.shake=.35;
@@ -431,9 +450,10 @@ function update(dt) {
 
   // Reactor core.
   circleCollision(reactor,1.55,(nx,ny)=>{
-    const speed=Math.max(9,Math.hypot(ball.vx,ball.vy));
-    ball.vx=nx*speed*1.12;
-    ball.vy=ny*speed*1.12;
+    const speed=clamp(Math.hypot(ball.vx,ball.vy)+1.8,6.5,11.5);
+    ball.vx=nx*speed;
+    ball.vy=ny*speed;
+    limitBallSpeed(13);
     reactor.pulse=1;
     reactor.hits++;
     addScore(400,"reactor");
@@ -442,7 +462,7 @@ function update(dt) {
   });
   reactor.pulse=Math.max(0,reactor.pulse-dt*3.5);
 
-  posts.forEach(p=>circleCollision(p,1.5,()=>{addScore(25);tone(620,.025,"square",.015)}));
+  posts.forEach(p=>circleCollision(p,1.15,()=>{addScore(25);tone(620,.025,"square",.015)}));
 
   // Rollover gates.
   rollovers.forEach(r=>{
@@ -490,12 +510,6 @@ function update(dt) {
 
   flippers.forEach(flipperCollision);
 
-  // Anti-stall only when the ball is nearly stopped away from the drain.
-  const speed=Math.hypot(ball.vx,ball.vy);
-  if(speed<1.2&&ball.y<890){
-    ball.vx+=(ball.x<W/2?.45:-.45);
-    ball.vy+=.8;
-  }
 
   if(ball.y>H+30){
     state.balls--;
