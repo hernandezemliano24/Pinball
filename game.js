@@ -34,7 +34,7 @@ let accumulator = 0;
 const STEP = 1 / 120;
 const GRAVITY = 12;
 const AIR_DRAG = 0.9985;
-const MAX_BALL_SPEED = 18;
+const MAX_BALL_SPEED = 9;
 const MIN_ROLL_SPEED = 0.15;
 let paused = false;
 let audio;
@@ -262,7 +262,7 @@ function updateUI() {
 
 function launch() {
   if (!state.ready || state.gameOver) return;
-  const power = 14 + state.launchCharge * 12;
+  const power = 6.5 + state.launchCharge * 2.5;
   ball.vx = 0;
   ball.vy = -power;
   state.ready = false;
@@ -341,9 +341,9 @@ function flipperCollision(f) {
   const ey=f.py+Math.sin(f.angle)*f.len;
   const hit=segmentCollision(f.px,f.py,ex,ey,f.width/2,1.02,(nx)=>{
     if(f.pressed){
-      ball.vy-=6.8;
-      ball.vx+=nx*3.2;
-      limitBallSpeed(15);
+      ball.vy-=4.8;
+      ball.vx+=nx*2.4;
+      limitBallSpeed(9);
       addScore(20);
       emit(ball.x,ball.y,C.pink,5,3);
       tone(150,.035,"square",.025);
@@ -384,61 +384,82 @@ function update(dt) {
     return;
   }
 
+  // Stable ball physics:
+  // 1. Apply gravity and drag.
+  // 2. Clamp velocity before moving.
+  // 3. Move in small substeps so the ball cannot tunnel through walls.
   ball.vy+=GRAVITY*dt;
   ball.vx*=Math.pow(AIR_DRAG,dt*120);
   ball.vy*=Math.pow(AIR_DRAG,dt*120);
-  ball.x+=ball.vx;
-  ball.y+=ball.vy;
+  limitBallSpeed();
+
+  const travel=Math.hypot(ball.vx,ball.vy);
+  const substeps=Math.max(1,Math.ceil(travel/3));
+
+  for(let step=0;step<substeps;step++){
+    ball.x+=ball.vx/substeps;
+    ball.y+=ball.vy/substeps;
+
+    /*
+      ONE-TIME SHOOTER EXIT:
+      The ball remains physically inside the tunnel until it reaches the
+      top. It is then released once into open playfield space.
+    */
+    if(!shooterTransferred){
+      if(ball.y>285){
+        if(ball.x-ball.r<770){
+          ball.x=770+ball.r;
+          ball.vx=Math.abs(ball.vx)*.25;
+        }
+        if(ball.x+ball.r>820){
+          ball.x=820-ball.r;
+          ball.vx=-Math.abs(ball.vx)*.25;
+        }
+      }else{
+        ball.x=690;
+        ball.y=315;
+        ball.vx=-4.2;
+        ball.vy=2.2;
+        shooterTransferred=true;
+        emit(ball.x,ball.y,C.cyan,10,4);
+        setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
+        tone(720,.08,"sine",.035);
+      }
+    }
+
+    // Resolve every wall during every movement substep.
+    walls.forEach(w=>segmentCollision(...w,8,.62));
+
+    // Hard cabinet containment. This only corrects impossible out-of-bounds
+    // positions and does not add random force.
+    if(shooterTransferred && ball.y<1010){
+      if(ball.x-ball.r<44){
+        ball.x=44+ball.r;
+        ball.vx=Math.abs(ball.vx)*.7;
+      }
+      if(ball.x+ball.r>730){
+        ball.x=730-ball.r;
+        ball.vx=-Math.abs(ball.vx)*.7;
+      }
+      if(ball.y-ball.r<62){
+        ball.y=62+ball.r;
+        ball.vy=Math.abs(ball.vy)*.7;
+      }
+    }
+
+    limitBallSpeed();
+  }
 
   ball.trail.unshift({x:ball.x,y:ball.y});
   if(ball.trail.length>12)ball.trail.pop();
 
-  /*
-    SMOOTH ONE-TIME SHOOTER HANDOFF:
-    The ball rises in the tunnel once, then is released into open space
-    below the upper bumpers with a clean diagonal velocity.
-  */
-  if(!shooterTransferred){
-    if(ball.y > 285){
-      if(ball.x - ball.r < 770){
-        ball.x = 770 + ball.r;
-        ball.vx = Math.abs(ball.vx) * .35;
-      }
-      if(ball.x + ball.r > 820){
-        ball.x = 820 - ball.r;
-        ball.vx = -Math.abs(ball.vx) * .35;
-      }
-    }else{
-      ball.x = 690;
-      ball.y = 315;
-      ball.vx = -4.8;
-      ball.vy = 2.6;
-      shooterTransferred = true;
-      emit(ball.x,ball.y,C.cyan,10,4);
-      setMessage("SHOOTER EXIT","BALL ENTERED PLAYFIELD");
-      tone(720,.08,"sine",.035);
-    }
-  }
-
-  // Main walls. Ignore the upper-right guide rails while the ball
-  // is clearing the shooter exit so it cannot be bounced back upward.
-  walls.forEach((w,i)=>{
-    const clearingExit =
-      shooterTransferred &&
-      ball.x > 610 &&
-      ball.y < 390 &&
-      (i === 9 || i === 10);
-
-    if(!clearingExit) segmentCollision(...w,7,.72);
-  });
-
   // Bumpers.
   bumpers.forEach(b=>{
     circleCollision(b,1.7,(nx,ny)=>{
-      const speed=clamp(Math.hypot(ball.vx,ball.vy)+2.2,7,12);
+      const speed=clamp(Math.hypot(ball.vx,ball.vy)+1.2,5.5,8.5);
       ball.vx=nx*speed;
       ball.vy=ny*speed;
-      limitBallSpeed(14);
+      limitBallSpeed(9);
       b.pulse=1;
       addScore(b.points,"target");
       state.shake=.35;
@@ -450,10 +471,10 @@ function update(dt) {
 
   // Reactor core.
   circleCollision(reactor,1.55,(nx,ny)=>{
-    const speed=clamp(Math.hypot(ball.vx,ball.vy)+1.8,6.5,11.5);
+    const speed=clamp(Math.hypot(ball.vx,ball.vy)+1,5,8);
     ball.vx=nx*speed;
     ball.vy=ny*speed;
-    limitBallSpeed(13);
+    limitBallSpeed(9);
     reactor.pulse=1;
     reactor.hits++;
     addScore(400,"reactor");
@@ -481,17 +502,36 @@ function update(dt) {
     }
   });
 
-  // Stand-up targets.
+  // Solid stand-up targets with a short hit cooldown.
   targets.forEach(tg=>{
-    if(ball.x+ball.r>tg.x && ball.x-ball.r<tg.x+tg.w &&
+    tg.cooldown=Math.max(0,(tg.cooldown||0)-dt);
+
+    if(tg.cooldown===0 &&
+       ball.x+ball.r>tg.x && ball.x-ball.r<tg.x+tg.w &&
        ball.y+ball.r>tg.y && ball.y-ball.r<tg.y+tg.h){
-      const left=ball.x<tg.x+tg.w/2;
-      ball.vx=(left?-1:1)*Math.max(5,Math.abs(ball.vx));
+
+      const cx=tg.x+tg.w/2;
+      const cy=tg.y+tg.h/2;
+      const dx=ball.x-cx;
+      const dy=ball.y-cy;
+
+      if(Math.abs(dx)>Math.abs(dy)){
+        const side=dx<0?-1:1;
+        ball.x=cx+side*(tg.w/2+ball.r+1);
+        ball.vx=side*Math.max(3,Math.abs(ball.vx)*.75);
+      }else{
+        const side=dy<0?-1:1;
+        ball.y=cy+side*(tg.h/2+ball.r+1);
+        ball.vy=side*Math.max(3,Math.abs(ball.vy)*.75);
+      }
+
+      limitBallSpeed();
+      tg.cooldown=.18;
       tg.on=true;
       addScore(300,"target");
-      emit(tg.x+tg.w/2,tg.y+tg.h/2,C.pink,10,4);
+      emit(cx,cy,C.pink,10,4);
       tone(760,.04,"square",.03);
-      setTimeout(()=>tg.on=false,280);
+      setTimeout(()=>tg.on=false,180);
     }
   });
 

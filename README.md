@@ -174,3 +174,14 @@ sudo cat /var/log/pinball-deploy.log
 - Reduced bumper, reactor, wall, post, and flipper impulses.
 - Lowered shooter-entry velocity.
 - Added cache version `v=10`.
+
+## Version 11 solid-wall physics
+
+- Movement is divided into small substeps so the ball cannot pass through walls.
+- Maximum ball speed is lower than the ball diameter.
+- All cabinet rails are resolved during every movement substep.
+- Added hard cabinet containment without random impulses.
+- Bumpers, reactor, targets, and flippers now use controlled bounce energy.
+- Stand-up targets are solid and use collision cooldowns.
+- Added invalid-number recovery instead of allowing the ball off-screen.
+- Added cache version `v=11`.
